@@ -137,4 +137,7 @@ export default App;
 18. npm install
 19. npm start
 
+## **Step 2: Launch EC2 & Connect via SSH**
+
+1. 
 
