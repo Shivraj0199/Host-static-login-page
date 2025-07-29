@@ -16,39 +16,39 @@
 
 ## Step 1: Create RDS MySQL Database
 
-* Go to RDS > Create database
+* **Go to RDS >** Create database
 
-* Select MySQL, Standard Create
+* **Select MySQL, Standard Create**
 
-* Enable:
+* **Enable:**
 
-  * DB Name: login
+  * **DB Name:** login
 
-  * Master user: admin
+  * **Master user:** admin
 
-* Enable IAM DB authentication
-* Create and note the end point
+* **Enable IAM DB authentication**
+* **Create and note the end point**
 
 ## Step 2: Create IAM role for Ec2
 
-1.  Go to -> IAM Console -> Roles
-2.  Click create role
-3.  Select trusted entity:
+1.  **Go to ->** IAM Console -> Roles
+2.  **Click create role**
+3.  **Select trusted entity:**
    *  Choose aws service
    *  Use case : Ec2
    *  Click next
 
 4. Skip aws managed permissions
 5. Name the role
-   * Role name: EC2RDSIAMROLE (Give any name you want)
-   * Click create role
+   * **Role name:** EC2RDSIAMROLE (Give any name you want)
+   * **Click create role**
 
-6. Add inline policy to the role
-   * Go back to the IAM -> Roles
+6. **Add inline policy to the role**
+   * **Go back to the IAM ->** Roles
    * Click on your newly created role (EC2RDSIAMROLE)
-   * Scroll down to the permissions -> Click add inline policy
-   * Choose : Json
-   * Paste the IAM policy :
+   * **Scroll down to the permissions ->** Click add inline policy
+   * **Choose :** Json
+   * **Paste the IAM policy :**
    
 ```
 {
@@ -70,9 +70,9 @@
 
 * **If you  already launched ec2 instance go with following steps**
 
-1. Go to Ec2 console -> Instances
+1. **Go to Ec2 console ->** Instances
 2. Select your instance
-3. Click actions -> Security -> Modify IAM role
+3. **Click actions ->** Security -> Modify IAM role
 4. Choose ``` EC2RDSIAMROLE``` from dropdown
 5. Click update IAM role
 
@@ -83,7 +83,7 @@
 
 ## Step 5: Connect to your RDS
 
-1. mysql -h <your-rds-end-point> -u admin --enable-cleartext-plugin -p
+1. **mysql -h <your-rds-end-point> -u admin --enable-cleartext-plugin -p**
 
 ### Create database and table
 
@@ -103,6 +103,56 @@
 
 ## Step 7: Upload app code
 
-1. git clone 
+1. git clone https://github.com/Shivraj0199/Login-html-app.git
+2. cd Login-html-app/backend
+3. npm install mysql2 express body-parser@aws-sdk/rds-signer
+4. node server.js
+5. sudo cp Login-html-app/frontend/index.html /var/www/html/index.html
+6. sudo systemctl restart nginx
+7. visit in browser ``` http://<ec2-public-ip>```
+
+* **Nginx - Access via https://<ec2-public-ip>**
+* **Express - Access via https://<ec2-public-ip>:5000**
+
+## Step 8: Install PM2 (Server running backend)
+
+1. sudo npm install -g pm2
+2. pm2 start server.js --name login-backend
+3. pm2 logs login-backend
+
+* **If you are not inside the backend folder, then do this**
+
+1. **pm2 start Login-html-app/backend/server.js --name login-backend**
+
+## Step 8: Configure nginx as Reverse proxy
+
+1. sudo nano /etc/nginx/sites-available/default
+
+```
+server {
+  listen 80;
+  server_name tech-connect.cloud www.tech-connect.cloud;
+
+  location / {
+    proxy_pass http://localhost:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+  }
+}
+```
+## Step 9: Connect domain to ec2
+
+### Go to your domain register
+
+1. **Find DNS setting**
+2. **Add 'A' record**
+ * **@ ->** ```<your-ec2-ip>```
+ * **wwww ->** ```<your-ec2-ip>```
+
+3. **Save and wait for DNS to propogate**
+
+ 
    
 
