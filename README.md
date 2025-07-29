@@ -1,143 +1,108 @@
-## Hosting a fullstack app from scartch (React + Express on EC2 with HTTPS & Domain)
+### **Static html login page app that connects to RDS (mysql) hosted on Ec2 instance served with nginx, secured using Certbot (Lets's encrypt) and using IAM authentication for secure RDS access also access to own domain**
 
-### **(if you have no project code use this steps)** 
+#
 
-## **Step 1: Create the Project Structure**
+1. **Frontend:** HTML + JavaScript login page 
 
-1. cd desktop
-2. mkdir fullstack-app (on your local machine)
-3. cd fullstack-app
-4. Install the nodejs software on your local machine ``` (https://nodejs.org/en/download) ```
-5. mkdir backend
-6. cd backend
-7. npm init -y
-8. npm install express (Installing this we get all suporrted files)
-9. nano server.js (Create file on your backend directory and paste the following code)
+2. **Backend:** Node.js server (API handler)
 
-* Server.js
-```
-  const express = require('express');
-const path = require('path');
-const app = express();
-const PORT = process.env.PORT || 5000;
+3. **Database:** Amazon RDS MySQL with IAM authentication
 
-app.use(express.json());
+4. **Deployment:** EC2 (Ubuntu), Nginx, Certbot (HTTPS)
 
-// Serve static React frontend
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+5. **Domain:** Your own (tech-connect.cloud)
 
-// Example API route
-app.get('/api/message', (req, res) => {
-  res.json({ message: 'Hello from the Express backend!' });
-});
+6. **IAM:** EC2 IAM role with rds-db:connect permission
 
-// React fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-});
+## Step 1: Create RDS MySQL Database
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+* Go to RDS > Create database
 
-```
+* Select MySQL, Standard Create
 
-10. nano package.json (Update package.json with start script replace this file from following script)
+* Enable:
 
-* Replace with
-```
-{
-  "name": "backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
-  }
-}
-```
-11. cd ../desktop
-12. npx create-react-app frontend (npx is tool to create react app using classic way (CRA))
-13. cd frontend
-14. update package.json and add proxy ``` "proxy": "http://localhost:5000" ``` (Add this at the end of file before the lastcurle braceses)
+  * DB Name: login
 
+  * Master user: admin
+
+* Enable IAM DB authentication
+* Create and note the end point
+
+## Step 2: Create IAM role for Ec2
+
+1.  Go to -> IAM Console -> Roles
+2.  Click create role
+3.  Select trusted entity:
+   *  Choose aws service
+   *  Use case : Ec2
+   *  Click next
+
+4. Skip aws managed permissions
+5. Name the role
+   * Role name: EC2RDSIAMROLE (Give any name you want)
+   * Click create role
+
+6. Add inline policy to the role
+   * Go back to the IAM -> Roles
+   * Click on your newly created role (EC2RDSIAMROLE)
+   * Scroll down to the permissions -> Click add inline policy
+   * Choose : Json
+   * Paste the IAM policy :
+   
 ```
 {
-  "name": "frontend",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.6.4",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-"proxy": "http://localhost:5000"
-
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "rds-db:connect",
+      "Resource": "arn:aws:rds-db:<region>:<account-id>:dbuser:<db-resource-id>/admin"
+    }
+  ]
 }
 ```
-15. cd /frontend/src/App.js (Modify react app to call API)
+   * Click reviewing policy
+   * Name the policy : Allow Ec2 to RDS connect (Give any name)
+   * Click create policy
 
-* Paste this
-```
-import React, { useEffect, useState } from 'react';
+## Step 3: Attach the IAM role to Ec2 Instance
 
-function App() {
-  const [msg, setMsg] = useState('');
+* **If you  already launched ec2 instance go with following steps**
 
-  useEffect(() => {
-    fetch('/api/message')
-      .then(res => res.json())
-      .then(data => setMsg(data.message))
-      .catch(err => console.log(err));
-  }, []);
+1. Go to Ec2 console -> Instances
+2. Select your instance
+3. Click actions -> Security -> Modify IAM role
+4. Choose ``` EC2RDSIAMROLE``` from dropdown
+5. Click update IAM role
 
-  return (
-    <div style={{ textAlign: 'center', marginTop: '5rem' }}>
-      <h1>React + Express Fullstack App</h1>
-      <h2>{msg}</h2>
-    </div>
-  );
-}
+## Step 4: Install mysql-client (on obuntu)
 
-export default App;
-```
-16. npm run build
-17. cd ../backend
-18. npm install
-19. npm start
+1. sudo apt update -y
+2. sudo apt install mysql-client -y
 
-## **Step 2: Launch EC2 & Connect via SSH**
+## Step 5: Connect to your RDS
 
-1. 
+1. mysql -h <your-rds-end-point> -u admin --enable-cleartext-plugin -p
+
+### Create database and table
+
+1. create database login;
+2. use login;
+3. create table users (id int AUTO_INCREMENT PRIMARY KEY, username varchar(50), password varchar(50));
+4. insert into users (username,password) values ('admin','1234');
+5. select * from users;
+
+## Step 6: Install all dependencies
+
+1. sudo apt update -y
+2. sudo apt install nodejs -y
+3. sudo apt install npm -y
+4. sudo apt install nginx -y (start and enable nginx)
+5. sudo apt install git -y
+
+## Step 7: Upload app code
+
+1. git clone 
+   
 
