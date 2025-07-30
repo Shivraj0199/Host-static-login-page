@@ -148,8 +148,11 @@ server {
 
 1. **Find DNS setting**
 2. **Add 'A' record**
- * **@ ->** ```<your-ec2-ip>```
- * **www ->** ```<your-ec2-ip>```
+
+| Record Type | Name              | Value                                      | Routing Policy |
+|-------------|-------------------|--------------------------------------------|----------------|
+| A           | yourdomain.com    | EC2 Public IP                              | Simple         |
+| A           | www.yourdomain.com| EC2 Public IP                              | Simple         |
 
 3. **Save and wait for DNS to propogate**
 
