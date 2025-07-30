@@ -157,7 +157,7 @@ server {
 
 1. sudo apt update -y
 2. sudo apt insatll python3-certbot-nginx -y
-3. sudo certbot --nginx -d ```<your-domain-name>``` -d www.```<your-domain-name>```
+3. sudo certbot --nginx -d ```<your-domain-name>``` -d ```www.<your-domain-name>```
 4. sudo certbot renew --dry-run 
    
 
